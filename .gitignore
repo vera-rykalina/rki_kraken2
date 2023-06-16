@@ -11,3 +11,4 @@ Pipeline/work/Scripts/bin/tools/__pycache__/AuxiliaryFunctions.cpython-310.pycPi
 Pipeline/Scripts/bin/tools/__pycache__/AuxiliaryFunctions.cpython-35.pyc
 Scripts/bin/tools/AuxiliaryFunctions.pyc
 *.pyc
+Pipeline/conda
