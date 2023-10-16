@@ -95,8 +95,8 @@ process EXTRACT {
     script:
         """
             extract_kraken_reads.py \
+                -k ${kraken2_output} \
                 --taxid 9606 \
-                --kraken ${kraken2_output} \
                 --exclude \
                 --fastq-output \
                 -s1 ${reads[0]} \
