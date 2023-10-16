@@ -12,9 +12,7 @@ if (!params.outdir) {
 **************************/
 
 // (/scratch/rykalinav/nextflow) hpc-login02[/scratch/.../kraken2]
-// $ nextflow run ../scratch/rki_phyloTSI/Pipeline/Scripts/kraken2.nf \
-// --krakendb /scratch/databases/kraken2_20230314/ \
-// --taxid ### \ ### modify here
+// $ nextflow run ../scratch/rki_kraken2/Pipeline/Scripts/kraken2.nf \
 // -profile rki_slurm,rki_mamba \
 // -with-report logs/test.$(date +%T).report.html \
 // # use this parameter for an empty test run
@@ -24,10 +22,11 @@ if (!params.outdir) {
 DEFINE VARIABLES
 **************************/
 
-projectDir = "/home/rykalinav/scratch/rki_phyloTSI/Pipeline"
-krakendb      = params.krakendb
-//taxid         = params.taxid
+projectDir = "/home/rykalinav/scratch/rki_kraken2/Pipeline"
 
+
+// Parameters for kraken2
+params.krakendb = "/scratch/databases/kraken2_20230314/"
 
 /************************** 
 ---------WORKFLOW----------
@@ -36,8 +35,9 @@ ch_infiles = channel.fromFilePairs("${projectDir}/RawData/*_R{1,2}*.fastq.gz")
 
 workflow {
 
-    ch_infiles.view()
-    ch_classified = CLASSIFY(ch_infiles, krakendb)
+    ch_classified = CLASSIFY(ch_infiles, params.krakendb)
+    ch_extracted = EXTRACT(ch_infiles, ch_classified.kraken2_output)
+    ch_compressed = COMPRESS(ch_extracted.extracted_fastq)
 
 }
 
@@ -50,107 +50,78 @@ process CLASSIFY {
 
     label "kraken2"
     conda "${projectDir}/Environments/kraken2.yml"
-    publishDir "${params.outdir}/01_classification/${sample}", pattern: "*.txt"
-
-    // SLURM cluster options
-    cpus 10
-    memory "150 GB"
-    time "4h"
-    // clusterOptions "--job-name=classify_${sample}"
-    tag "${sample}_classify"
+    publishDir "${params.outdir}/01_classification/${id}", mode: "copy", overwrite: true
+    tag "${id}_classify"
 
     input:
-        tuple val(sample), path(reads)
-        val krakendb
+        tuple val(id), path(reads)
+        val (db)
 
     output:
-        tuple val(sample), path("${sample}.classified.R*.fastq"),     emit: fastq
-        tuple val(sample), path("${sample}.kraken.out.txt"),          emit: kraken_output
-        tuple val(sample), path("${sample}.kraken.report.txt"),       emit: kraken_report
+        tuple val(id), path("${id}_classified_R*.fastq"),     emit: classified_fastq
+        tuple val(id), path("${id}_unclassified_R*.fastq"),   emit: unclassified_fastq
+        tuple val(id), path("${id}_kraken2_out.txt"),         emit: kraken2_output
+        tuple val(id), path("${id}_kraken2_report.txt"),      emit: kraken2_report
 
     script:
         """
             kraken2 \
-                --threads ${task.cpus} \
-                --db ${krakendb} \
+                --threads 10 \
+                --db ${params.krakendb} \
                 --paired \
-                --classified-out ${sample}.classified.R#.fastq \
-                --output ${sample}.kraken.out.txt \
-                --report ${sample}.kraken.report.txt \
+                --classified-out ${id}_classified_R#.fastq \
+                --unclassified-out ${id}_classified_R#.fastq \
+                --output ${id}_kraken2_out.txt \
+                --report ${id}_kraken2_report.txt \
+                --report-minimizer-data \
                 ${reads[0]} ${reads[1]}
         """
-
-    stub:
-        """
-            touch ${sample}.classified.R_{1,2}.fastq ${sample}.kraken.out.txt ${sample}.kraken.report.txt
-        """
+     
 }
 
 // krakenTools
-process filter_reads {
+process EXTRACT {
     label "krakentools"
     conda "${projectDir}/envs/krakentools.yml"
-
-    // SLURM cluster options
-    cpus 1
-    memory "1 GB"
-    time "1h"
-
-    tag "filter_${sample}"
+    tag "${id}_extract"
 
     input:
-        tuple val(sample), path(reads)
-        tuple val(sample), path(kraken_output)
-        tuple val(sample), path(kraken_report)
-        val(taxid)
-
+        tuple val(id), path(reads)
+        tuple val(id), path(kraken2_output)
+    
     output:
-        tuple val(sample), file("${sample}.classified.R*.fastq"),     emit: fastq
+        tuple val(id), path("${id}_extracted_R*.fastq"), emit: extracted_fastq
     
     script:
         """
             extract_kraken_reads.py \
-                -t ${taxid}\
-                -k ${kraken_output} \
+                --taxid 9606 \
+                --kraken ${kraken2_output} \
+                --exclude \
+                --fastq-output \
                 -s1 ${reads[0]} \
                 -s2 ${reads[1]} \
-                -o ${sample}.classified.R1.fastq \
-                -o2 ${sample}.classified.R2.fastq \
-                --fastq-output \
-                --report ${kraken_report} \
-                --include-children
-
-        """
-    stub:
-        """
-            touch ${sample}.classified.R1.fastq ${sample}.classified.R2.fastq
+                -o ${id}_extracted_R1.fastq \
+                -o2 ${id}_extracted_R2.fastq       
         """
 }
 
-// compress kraken2 output files, selected files
-process compress_reads {
-
+// compress extracted output files
+process COMPRESS {
     label "compress"
-
-    publishDir path: "${params.analysesdir}/02_read_filter/${sample}", pattern: "*.fastq.gz", failOnError: true, mode: "copy"
-
-    tag "compress_${sample}"
+    publishDir "${params.outdir}/02_kraken2_extracted", failOnError: true, mode: "copy", overwrite: true
+    tag "${id}_compress"
 
     input:
-        tuple val(sample), path(reads)
+        tuple val(id), path(reads)
 
     output:
-        tuple val(sample), path("${sample}.classified.R*.fastq.gz"), emit: fastq
+        tuple val(id), path("${id}_filtered_R*.fastq.gz"), emit: fastq_gz
 
     script:
         """
-            gzip -c \$(realpath ${sample}.classified.R1.fastq) > ${sample}.classified.R1.fastq.gz
-            gzip -c \$(realpath ${sample}.classified.R2.fastq) > ${sample}.classified.R2.fastq.gz
-        """
-
-    stub:
-        """
-            touch ${sample}.classified.R1.fastq.gz ${sample}.classified.R2.fastq.gz
+            gzip -c \$(realpath "${id}_extracted_R1.fastq") > ${id}_filtered_R1.fastq.gz
+            gzip -c \$(realpath "${id}_extracted_R2.fastq") > ${id}_filtered_R2.fastq.gz
         """
 }
 
