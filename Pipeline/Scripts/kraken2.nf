@@ -82,7 +82,7 @@ process CLASSIFY {
 // krakenTools
 process EXTRACT {
     label "krakentools"
-    conda "${projectDir}/envs/krakentools.yml"
+    conda "${projectDir}/Environments/krakentools.yml"
     tag "${id}_extract"
 
     input:
