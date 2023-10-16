@@ -70,7 +70,7 @@ process CLASSIFY {
                 --db ${params.krakendb} \
                 --paired \
                 --classified-out ${id}_classified_R#.fastq \
-                --unclassified-out ${id}_classified_R#.fastq \
+                --unclassified-out ${id}_unclassified_R#.fastq \
                 --output ${id}_kraken2_out.txt \
                 --report ${id}_kraken2_report.txt \
                 --report-minimizer-data \
