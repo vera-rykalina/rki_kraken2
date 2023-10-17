@@ -26,7 +26,7 @@ projectDir = "/home/rykalinav/scratch/rki_kraken2/Pipeline"
 
 
 // Parameters for kraken2
-params.krakendb = "/scratch/databases/kraken2_20230314/"
+params.krakendb = "/scratch/databases/kraken2_20230605/"
 
 /************************** 
 ---------WORKFLOW----------
@@ -36,8 +36,8 @@ ch_infiles = channel.fromFilePairs("${projectDir}/RawData/*_R{1,2}*.fastq.gz")
 workflow {
 
     ch_classified = CLASSIFY(ch_infiles, params.krakendb)
-    ch_extracted = EXTRACT(ch_infiles, ch_classified.kraken2_output)
-    ch_compressed = COMPRESS(ch_extracted.extracted_fastq)
+    ch_extracted = EXTRACT(ch_classified.classified_fastq, ch_classified.kraken2_output)
+    //ch_compressed = COMPRESS(ch_extracted.extracted_fastq)
 
 }
 
@@ -50,8 +50,7 @@ process CLASSIFY {
 
     label "kraken2"
     conda "${projectDir}/Environments/kraken2.yml"
-    publishDir "${params.outdir}/01_classification/${id}", mode: "copy", overwrite: true
-    tag "${id}_classify"
+    publishDir "${params.outdir}/01_classified_reads/${id}", mode: "copy", overwrite: true
 
     input:
         tuple val(id), path(reads)
@@ -73,7 +72,6 @@ process CLASSIFY {
                 --unclassified-out ${id}_unclassified_R#.fastq \
                 --output ${id}_kraken2_out.txt \
                 --report ${id}_kraken2_report.txt \
-                --report-minimizer-data \
                 ${reads[0]} ${reads[1]}
         """
      
@@ -83,14 +81,14 @@ process CLASSIFY {
 process EXTRACT {
     label "krakentools"
     conda "${projectDir}/Environments/krakentools.yml"
-    tag "${id}_extract"
+    publishDir "${params.outdir}/02_homo_filtered_reads", mode: "copy", overwrite: true
 
     input:
         tuple val(id), path(reads)
         tuple val(id), path(kraken2_output)
     
     output:
-        tuple val(id), path("${id}_extracted_R*.fastq"), emit: extracted_fastq
+        tuple val(id), path("${id}_homo_filtered_R*.fastq"), emit: homo_filtered
     
     script:
         """
@@ -98,19 +96,18 @@ process EXTRACT {
                 -k ${kraken2_output} \
                 --taxid 9606 \
                 --exclude \
-                --fastq-output \
                 -s1 ${reads[0]} \
                 -s2 ${reads[1]} \
-                -o ${id}_extracted_R1.fastq \
-                -o2 ${id}_extracted_R2.fastq       
+                -o ${id}_homo_filtered_R1.fastq \
+                -o2 ${id}_homo_filtered_R2.fastq \
+                --fastq-output   
         """
 }
 
 // compress extracted output files
 process COMPRESS {
     label "compress"
-    publishDir "${params.outdir}/02_kraken2_extracted", failOnError: true, mode: "copy", overwrite: true
-    tag "${id}_compress"
+    publishDir "${params.outdir}/03_compressed_reads", failOnError: true, mode: "copy", overwrite: true
 
     input:
         tuple val(id), path(reads)
@@ -120,8 +117,10 @@ process COMPRESS {
 
     script:
         """
-            gzip -c \$(realpath "${id}_extracted_R1.fastq") > ${id}_filtered_R1.fastq.gz
-            gzip -c \$(realpath "${id}_extracted_R2.fastq") > ${id}_filtered_R2.fastq.gz
+            gzip -c ${id}_extracted_R1.fastq > ${id}_filtered_R1.fastq.gz
+            gzip -c ${id}_extracted_R2.fastq > ${id}_filtered_R2.fastq.gz
         """
 }
 
+//gzip -c \$(realpath "${id}_extracted_R1.fastq") > ${id}_filtered_R1.fastq.gz
+//gzip -c \$(realpath "${id}_extracted_R2.fastq") > ${id}_filtered_R2.fastq.gz
