@@ -26,7 +26,7 @@ projectDir = "/home/rykalinav/scratch/rki_kraken2/Pipeline"
 
 
 // Parameters for kraken2
-params.krakendb = "/scratch/databases/kraken2_20230605/"
+params.krakendb = "/scratch/databases/kraken2_20230314/"
 
 /************************** 
 ---------WORKFLOW----------
@@ -37,6 +37,8 @@ workflow {
 
     ch_classified = CLASSIFY(ch_infiles, params.krakendb)
     ch_extracted = EXTRACT(ch_classified.classified_fastq, ch_classified.kraken2_output)
+    ch_merged_ags = ch_classified.unclassified_fastq.combine(ch_extracted.filtered, by:0)
+    ch_merged_compressed = MERGE(ch_merged_ags)
     //ch_compressed = COMPRESS(ch_extracted.extracted_fastq)
 
 }
@@ -88,7 +90,7 @@ process EXTRACT {
         tuple val(id), path(kraken2_output)
     
     output:
-        tuple val(id), path("${id}_homo_filtered_R*.fastq"), emit: homo_filtered
+        tuple val(id), path("${id}_filtered_R*.fastq"), emit: filtered
     
     script:
         """
@@ -98,11 +100,29 @@ process EXTRACT {
                 --exclude \
                 -s1 ${reads[0]} \
                 -s2 ${reads[1]} \
-                -o ${id}_homo_filtered_R1.fastq \
-                -o2 ${id}_homo_filtered_R2.fastq \
+                -o ${id}_filtered_R1.fastq \
+                -o2 ${id}_filtered_R2.fastq \
                 --fastq-output   
         """
 }
+
+// merge unclassified and filtered reads
+process MERGE {
+    publishDir "${params.outdir}/03_merged_reads", failOnError: true, mode: "copy", overwrite: true
+
+    input:
+        tuple val(id), path(unclassified), path(filtered)
+
+    output:
+        tuple val("${id}"), path("${id}_merged_R*.fastq.gz"), emit: merged_fastq_gz
+
+    script:
+        """
+        gzip -c ${unclassified[0]} ${filtered[0]} > ${id}_merged_R1.fastq.gz
+        gzip -c ${unclassified[1]} ${filtered[1]} > ${id}_merged_R2.fastq.gz
+        """
+}
+
 
 // compress extracted output files
 process COMPRESS {
