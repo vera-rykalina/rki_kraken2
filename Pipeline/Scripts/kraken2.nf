@@ -122,25 +122,3 @@ process MERGE {
         gzip -c ${unclassified[1]} ${filtered[1]} > ${id}_merged_R2.fastq.gz
         """
 }
-
-
-// compress extracted output files
-process COMPRESS {
-    label "compress"
-    publishDir "${params.outdir}/03_compressed_reads", failOnError: true, mode: "copy", overwrite: true
-
-    input:
-        tuple val(id), path(reads)
-
-    output:
-        tuple val(id), path("${id}_filtered_R*.fastq.gz"), emit: fastq_gz
-
-    script:
-        """
-            gzip -c ${id}_extracted_R1.fastq > ${id}_filtered_R1.fastq.gz
-            gzip -c ${id}_extracted_R2.fastq > ${id}_filtered_R2.fastq.gz
-        """
-}
-
-//gzip -c \$(realpath "${id}_extracted_R1.fastq") > ${id}_filtered_R1.fastq.gz
-//gzip -c \$(realpath "${id}_extracted_R2.fastq") > ${id}_filtered_R2.fastq.gz
