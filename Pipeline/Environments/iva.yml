@@ -1,8 +1,0 @@
-channels:
-  - conda-forge
-  - bioconda
-  - pypi
-  - defaults
-dependencies:
-  - iva
-  - python=3.7
