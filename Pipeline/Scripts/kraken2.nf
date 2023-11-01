@@ -37,9 +37,8 @@ workflow {
 
     ch_classified = CLASSIFY(ch_infiles, params.krakendb)
     ch_extracted = EXTRACT(ch_classified.classified_fastq, ch_classified.kraken2_output)
-    ch_merged_ags = ch_classified.unclassified_fastq.combine(ch_extracted.filtered, by:0)
+    ch_merged_ags = ch_classified.unclassified_fastq.combine(ch_extracted, by:0)
     ch_merged_compressed = MERGE(ch_merged_ags)
-    //ch_compressed = COMPRESS(ch_extracted.extracted_fastq)
 
 }
 
@@ -51,7 +50,8 @@ PROCESSES
 process CLASSIFY {
 
     label "kraken2"
-    conda "${projectDir}/Environments/kraken2.yml"
+    conda "/home/rykalinav/.conda/envs/kraken2_v2.1.2"
+    //conda "${projectDir}/Environments/kraken2.yml"
     publishDir "${params.outdir}/01_classified_reads/${id}", mode: "copy", overwrite: true
 
     input:
@@ -82,7 +82,8 @@ process CLASSIFY {
 // krakenTools
 process EXTRACT {
     label "krakentools"
-    conda "${projectDir}/Environments/krakentools.yml"
+    conda "/home/rykalinav/.conda/envs/krakentools_v1.2"
+    //conda "${projectDir}/Environments/krakentools.yml"
     publishDir "${params.outdir}/02_homo_filtered_reads", mode: "copy", overwrite: true
 
     input:
@@ -90,7 +91,7 @@ process EXTRACT {
         tuple val(id), path(kraken2_output)
     
     output:
-        tuple val(id), path("${id}_filtered_R*.fastq"), emit: filtered
+        tuple val(id), path("${id}_filtered_R*.fastq")
     
     script:
         """
@@ -114,11 +115,11 @@ process MERGE {
         tuple val(id), path(unclassified), path(filtered)
 
     output:
-        tuple val("${id}"), path("${id}_merged_R*.fastq.gz"), emit: merged_fastq_gz
+        tuple val("${id}"), path("${id}_R*.fastq.gz")
 
     script:
         """
-        gzip -c ${unclassified[0]} ${filtered[0]} > ${id}_merged_R1.fastq.gz
-        gzip -c ${unclassified[1]} ${filtered[1]} > ${id}_merged_R2.fastq.gz
+        gzip -c ${unclassified[0]} ${filtered[0]} > ${id}_R1.fastq.gz
+        gzip -c ${unclassified[1]} ${filtered[1]} > ${id}_R2.fastq.gz
         """
 }
