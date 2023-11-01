@@ -1,6 +1,7 @@
 Pipeline/.nextflow
 Pipeline/Results/
-Pipeline/RawData/*
+Pipeline/RawData/*.fastq.gz
+Pipeline/RawData/*.fastq
 Pipeline/.nextflow.log*
 Pipeline/.nextflow
 Pipeline/work/
