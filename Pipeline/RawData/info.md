@@ -1,0 +1,1 @@
+Add your fastq.gz files to this folder.
