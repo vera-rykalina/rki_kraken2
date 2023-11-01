@@ -10,7 +10,8 @@ conda create -n ncbi-datasets-cli_v15.25.0 -c conda-forge ncbi-datasets-cli=15.2
 ```
 
 - Prepare multifasta
-(NB) The fasta sequence headers must include either NCBI accession numbers or the text kraken:taxid followed by the taxonomy ID for the genome (e.g. >sequence_name|kraken:taxid|11676|).
+
+**(NB)** The fasta sequence headers must include either NCBI accession numbers or the text kraken:taxid followed by the taxonomy ID for the genome (e.g. >sequence_name|kraken:taxid|11676|).
 
 
 ## Steps
