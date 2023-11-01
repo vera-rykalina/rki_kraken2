@@ -11,12 +11,10 @@ if (!params.outdir) {
 -----------CALL------------
 **************************/
 
-// (/scratch/rykalinav/nextflow) hpc-login02[/scratch/.../kraken2]
-// $ nextflow run ../scratch/rki_kraken2/Pipeline/Scripts/kraken2.nf \
+// $ nextflow ../scratch/rki_kraken2/Pipeline/Scripts/kraken2.nf \
+// -c Scripts/rki_config \
 // -profile rki_slurm,rki_mamba \
-// -with-report logs/test.$(date +%T).report.html \
-// # use this parameter for an empty test run
-// -stub
+// -with-report logs/test.$(date +%T).report.html 
 
 /************************** 
 DEFINE VARIABLES
@@ -79,7 +77,7 @@ process CLASSIFY {
      
 }
 
-// krakenTools
+// krakentools
 process EXTRACT {
     label "krakentools"
     conda "/home/rykalinav/.conda/envs/krakentools_v1.2"
