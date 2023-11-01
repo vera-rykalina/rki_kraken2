@@ -5,3 +5,4 @@ Pipeline/.nextflow.log*
 Pipeline/.nextflow
 Pipeline/work/
 Pipeline/conda
+Pipeline/Scripts/selective_assembly.nf
