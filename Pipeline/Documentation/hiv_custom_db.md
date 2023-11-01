@@ -1,4 +1,4 @@
-# A short desctiption on how to create a custom Kraken2 DB for HIV-1
+# A short description on how to create a custom Kraken2 DB for HIV-1
 
 ## Prerequisite
 Use NCBI Vrius to download all available complete HIV-1 genomes (NCBI Datasets CLI).
