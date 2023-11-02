@@ -19,13 +19,13 @@ datasets download virus genome taxon 11676 \
   --host human \
   --complete-only \
   --include genome
+unzip ncbi_dataset.zip
 ```
-
 
 - Prepare multifasta
 
-**(NB)** The fasta sequence headers must include either NCBI accession numbers or the text kraken:taxid followed by the taxonomy ID for the genome (e.g. >sequence_name|kraken:taxid|11676|).
-( kraken:taxid|11676)
+**(NB)** The fasta sequence headers must include either NCBI accession numbers or the text kraken:taxid followed by the taxonomy ID for the genome:
+(e.g. >sequence_name| kraken:taxid|11676)
 
 ## Steps
 - Install and activate **kraken2_v2.1.2** environment
