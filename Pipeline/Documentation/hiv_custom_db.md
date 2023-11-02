@@ -9,16 +9,33 @@ Use NCBI Vrius to download all available complete HIV-1 genomes (NCBI Datasets C
 conda create -n ncbi-datasets-cli_v15.25.0 -c conda-forge ncbi-datasets-cli=15.25.0
 ```
 
+```sh
+conda activate ncbi-datasets-cli_v15.25.0
+```
+
+
+```sh
+datasets download virus genome taxon 11676 \
+  --host human \
+  --complete-only \
+  --include genome
+```
+
+
 - Prepare multifasta
 
 **(NB)** The fasta sequence headers must include either NCBI accession numbers or the text kraken:taxid followed by the taxonomy ID for the genome (e.g. >sequence_name|kraken:taxid|11676|).
-
+( kraken:taxid|11676)
 
 ## Steps
 - Install and activate **kraken2_v2.1.2** environment
 
 ```sh
 conda create -n kraken2_v2.1.2 -c bioconda kraken=2.1.2
+```
+
+```sh
+conda activate nkraken2_v2.1.2
 ```
 
 - Download the NCBI taxonomy
